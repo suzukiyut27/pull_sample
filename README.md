@@ -17,5 +17,5 @@ private const val TARGET_URL = "Set your URL here"
 ### After modification:
 
 ```kotlin
-private const val TARGET_URL = "Set your URL here"
+private const val TARGET_URL = "https://www.google.com"
 ```
