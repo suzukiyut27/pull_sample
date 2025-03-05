@@ -1,13 +1,15 @@
 package com.example.pull_sample
 
+import android.graphics.Bitmap
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.navigation.fragment.findNavController
 import com.example.pull_sample.databinding.FragmentFirstBinding
 
 /**
@@ -37,18 +39,14 @@ class FirstFragment : Fragment() {
         binding.apply {
             webView.apply {
                 settings.javaScriptEnabled = true
-                webViewClient = WebViewClient()
-                loadUrl("Set your URL here")
+                webViewClient = TimeoutWebViewClient(100000) {
+                    webView.loadUrl(TARGET_URL)
+                }
+                loadUrl(TARGET_URL)
             }
 
             swipeRefreshLayout.setOnRefreshListener {
                 webView.reload()
-            }
-
-            webView.webViewClient = object : WebViewClient() {
-                override fun onPageFinished(view: WebView?, url: String?) {
-                    swipeRefreshLayout.isRefreshing = false
-                }
             }
         }
     }
@@ -56,5 +54,37 @@ class FirstFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    companion object {
+        private const val TARGET_URL = "Set your URL here"
+    }
+
+    class TimeoutWebViewClient(
+        private var timeoutMillis: Long,
+        private val onTimeout: () -> Unit
+    ) : WebViewClient() {
+
+        private var handler: Handler? = null
+        private var timeoutRunnable: Runnable? = null
+
+        override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+            super.onPageStarted(view, url, favicon)
+
+            handler?.removeCallbacks(timeoutRunnable!!)
+            handler = Handler(Looper.getMainLooper())
+
+            timeoutRunnable = Runnable {
+                view?.stopLoading()
+                onTimeout()
+            }
+
+            handler?.postDelayed(timeoutRunnable!!, timeoutMillis)
+        }
+
+        override fun onPageFinished(view: WebView?, url: String?) {
+            super.onPageFinished(view, url)
+            handler?.removeCallbacks(timeoutRunnable!!)
+        }
     }
 }
